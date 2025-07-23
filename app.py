@@ -17,7 +17,7 @@ def get_connection():
     )
 
 # ---------- CARGA DE DATOS ----------
-@st.cache_data(show_spinner="Cargando registros…", ttl=60)
+@st.cache_data(ttl=60)
 def load_data():
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM inventario LIMIT 10", conn)
@@ -26,26 +26,28 @@ def load_data():
 
 df = load_data()
 
-# ---------- MOSTRAR TABLA CON ACCIÓN ----------
 st.subheader("Primeros 10 registros")
 
-# Agregamos una columna nueva para la acción (botón o tick)
-acciones = []
-for i in range(len(df)):
-    key_flag = f"flag_{i}"
-    key_btn = f"btn_{i}"
+# ---------- MOSTRAR REGISTROS UNO A UNO EN FORMATO HORIZONTAL ----------
+for idx, row in df.iterrows():
+    # Separar contenido (fila) y acción (botón o tick)
+    cols = st.columns([5, 1])  # [datos, acción]
 
-    if st.session_state.get(key_flag, False):
-        acciones.append("✔️")
-    else:
-        if st.button("Sí", key=key_btn):
-            st.session_state[key_flag] = True
-            st.experimental_rerun()
-        acciones.append("")
+    with cols[0]:
+        st.markdown(
+            "<div style='padding: 10px; border: 1px solid #ccc; border-radius: 10px;'>"
+            + "<br>".join([f"<b>{col}:</b> {row[col]}" for col in df.columns])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
-# Añadir la columna "Acción" a la tabla
-df_con_accion = df.copy()
-df_con_accion["Acción"] = acciones
+    with cols[1]:
+        key_flag = f"flag_{idx}"
+        key_btn = f"btn_{idx}"
 
-# Mostrar la tabla completa
-st.dataframe(df_con_accion, use_container_width=True)
+        if st.session_state.get(key_flag, False):
+            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
+        else:
+            if st.button("Sí", key=key_btn):
+                st.session_state[key_flag] = True
+                st.experimental_rerun()
