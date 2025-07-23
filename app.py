@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 
-# ---------- CONFIGURACIÓN DE LA PÁGINA ----------
+# ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
-st.title("✅ Selección de registros de inventario")
+st.title("✅ Revisión de inventario")
 
 # ---------- CONEXIÓN A MySQL ----------
 def get_connection():
@@ -25,25 +25,27 @@ def load_data():
     return df
 
 df = load_data()
-st.subheader("Primeros 10 registros de la tabla **inventario**")
 
-# ---------- MOSTRAR CON BOTONES ----------
-for idx, row in df.iterrows():
-    col_data, col_action = st.columns([4, 1], gap="small")
+# ---------- MOSTRAR TABLA CON ACCIÓN ----------
+st.subheader("Primeros 10 registros")
 
-    with col_data:
-        st.table(pd.DataFrame(row).T.reset_index(drop=True))
+# Agregamos una columna nueva para la acción (botón o tick)
+acciones = []
+for i in range(len(df)):
+    key_flag = f"flag_{i}"
+    key_btn = f"btn_{i}"
 
-    with col_action:
-        key_flag = f"flag_{idx}"
-        key_btn = f"btn_{idx}"
+    if st.session_state.get(key_flag, False):
+        acciones.append("✔️")
+    else:
+        if st.button("Sí", key=key_btn):
+            st.session_state[key_flag] = True
+            st.experimental_rerun()
+        acciones.append("")
 
-        if st.session_state.get(key_flag, False):
-            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
-        else:
-            if st.button("Sí", key=key_btn):
-                st.session_state[key_flag] = True
-                st.experimental_rerun()
+# Añadir la columna "Acción" a la tabla
+df_con_accion = df.copy()
+df_con_accion["Acción"] = acciones
 
-st.info("Pulsa **Sí** en los registros que corresponda. El tilde verde indica selección.")
-
+# Mostrar la tabla completa
+st.dataframe(df_con_accion, use_container_width=True)
