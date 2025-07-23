@@ -49,9 +49,9 @@ st.markdown("""
 # ---------- MOSTRAR CADA REGISTRO EN UNA LÍNEA SCROLLEABLE ----------
 for idx, row in df.iterrows():
     with st.container():
-        cols = st.columns([10, 1])  # datos | acción
+        cols = st.columns([10, 2])  # datos | botón + tilde
 
-        # Sección de datos scrolleable
+        # Sección de datos con scroll
         with cols[0]:
             st.markdown(
                 "<div class='registro-scroll'>" +
@@ -60,14 +60,21 @@ for idx, row in df.iterrows():
                 unsafe_allow_html=True
             )
 
-        # Acción: botón o tick
+        # Acción: botón y tilde al lado
         with cols[1]:
             key_flag = f"flag_{idx}"
             key_btn = f"btn_{idx}"
 
-            if st.session_state.get(key_flag, False):
-                st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
-            else:
+            if key_flag not in st.session_state:
+                st.session_state[key_flag] = False
+
+            col_btn, col_tick = st.columns([1, 0.3])
+
+            with col_btn:
                 if st.button("Sí", key=key_btn):
                     st.session_state[key_flag] = True
-                
+
+            with col_tick:
+                if st.session_state[key_flag]:
+                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+
