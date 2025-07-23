@@ -1,42 +1,49 @@
+import streamlit as st
 import pandas as pd
 import mysql.connector
-from mysql.connector import Error
-import streamlit as st
 
-# Función para obtener los datos de la base de datos
-def get_data():
-    try:
-        # Accede a los secretos de Streamlit Cloud
-        mysql_secrets = st.secrets["mysql"]
-        
-        # Establecer la conexión con la base de datos
-        connection = mysql.connector.connect(
-            host=mysql_secrets["host"],
-            user=mysql_secrets["user"],
-            password=mysql_secrets["password"],
-            database=mysql_secrets["database"]
-        )
-        
-        # Verificar si la conexión fue exitosa
-        if connection.is_connected():
-            st.write("Conexión exitosa a la base de datos")
-            
-            # Consulta SQL (asegúrate de que la tabla esté correcta)
-            query = "SELECT * FROM TU_TABLA LIMIT 10"  # Cambia 'TU_TABLA' por el nombre de tu tabla
-            st.write("Ejecutando consulta SQL:", query)
-            
-            # Ejecutar la consulta SQL y cargar los resultados en un DataFrame
-            df = pd.read_sql(query, connection)
-            return df
+# ---------- CONFIGURACIÓN DE LA PÁGINA ----------
+st.set_page_config(page_title="Revisión de inventario", layout="wide")
+st.title("✅ Selección de registros de inventario")
+
+# ---------- CONEXIÓN A MySQL ----------
+def get_connection():
+    return mysql.connector.connect(
+        host=st.secrets["app_marco_new"]["host"],
+        user=st.secrets["app_marco_new"]["user"],
+        password=st.secrets["app_marco_new"]["password"],
+        database=st.secrets["app_marco_new"]["database"],
+        port=3306,
+    )
+
+# ---------- CARGA DE DATOS ----------
+@st.cache_data(show_spinner="Cargando registros…", ttl=60)
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM inventario LIMIT 10", conn)
+    conn.close()
+    return df
+
+df = load_data()
+st.subheader("Primeros 10 registros de la tabla **inventario**")
+
+# ---------- MOSTRAR CON BOTONES ----------
+for idx, row in df.iterrows():
+    col_data, col_action = st.columns([4, 1], gap="small")
+
+    with col_data:
+        st.table(pd.DataFrame(row).T.reset_index(drop=True))
+
+    with col_action:
+        key_flag = f"flag_{idx}"
+        key_btn = f"btn_{idx}"
+
+        if st.session_state.get(key_flag, False):
+            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
         else:
-            st.error("No se pudo conectar a la base de datos.")
-            return None
+            if st.button("Sí", key=key_btn):
+                st.session_state[key_flag] = True
+                st.experimental_rerun()
 
-    except Error as e:
-        st.error(f"Error en la conexión a la base de datos: {e}")
-        return None
-    finally:
-        # Cerrar la conexión si está abierta
-        if connection.is_connected():
-            connection.close()
+st.info("Pulsa **Sí** en los registros que corresponda. El tilde verde indica selección.")
 
