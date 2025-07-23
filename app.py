@@ -28,25 +28,35 @@ df = load_data()
 
 st.subheader("Primeros 10 registros")
 
-# ---------- MOSTRAR REGISTROS UNO A UNO EN FORMATO HORIZONTAL ----------
+# ---------- MOSTRAR REGISTROS COMO FILAS HORIZONTALES ----------
+# Mostrar cabecera
+columnas = list(df.columns) + ["Acción"]
+st.markdown(
+    "<style>th, td { padding: 6px 12px; }</style>",
+    unsafe_allow_html=True
+)
+st.markdown(
+    "<div style='font-weight:bold; display:flex; gap:20px; margin-bottom:10px;'>"
+    + "".join([f"<div style='width:150px'>{col}</div>" for col in columnas])
+    + "</div>",
+    unsafe_allow_html=True,
+)
+
+# Mostrar filas
 for idx, row in df.iterrows():
-    # Separar contenido (fila) y acción (botón o tick)
-    cols = st.columns([5, 1])  # [datos, acción]
+    cols = st.columns([1] * len(columnas))  # una columna por campo
 
-    with cols[0]:
-        st.markdown(
-            "<div style='padding: 10px; border: 1px solid #ccc; border-radius: 10px;'>"
-            + "<br>".join([f"<b>{col}:</b> {row[col]}" for col in df.columns])
-            + "</div>",
-            unsafe_allow_html=True,
-        )
+    # Mostrar datos
+    for i, col in enumerate(df.columns):
+        cols[i].write(str(row[col]))
 
-    with cols[1]:
-        key_flag = f"flag_{idx}"
-        key_btn = f"btn_{idx}"
+    # Acción: botón o tilde
+    key_flag = f"flag_{idx}"
+    key_btn = f"btn_{idx}"
 
+    with cols[-1]:
         if st.session_state.get(key_flag, False):
-            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
+            st.markdown("✔️", unsafe_allow_html=True)
         else:
             if st.button("Sí", key=key_btn):
                 st.session_state[key_flag] = True
