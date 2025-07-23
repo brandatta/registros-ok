@@ -25,29 +25,49 @@ def load_data():
     return df
 
 df = load_data()
-
 st.subheader("Primeros 10 registros")
 
-# ---------- MOSTRAR REGISTROS UNO A UNO EN FORMATO HORIZONTAL ----------
+# ---------- ESTILO SCROLL HORIZONTAL ----------
+st.markdown("""
+<style>
+.registro-scroll {
+    display: flex;
+    overflow-x: auto;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-family: monospace;
+    font-size: 14px;
+}
+.registro-scroll div {
+    flex: 0 0 auto;
+    padding-right: 16px;
+    white-space: nowrap;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- MOSTRAR CADA REGISTRO EN UNA LÍNEA SCROLLEABLE ----------
 for idx, row in df.iterrows():
-    # Separar contenido (fila) y acción (botón o tick)
-    cols = st.columns([5, 1])  # [datos, acción]
+    with st.container():
+        cols = st.columns([10, 1])  # datos | acción
 
-    with cols[0]:
-        st.markdown(
-            "<div style='padding: 10px; border: 1px solid #ccc; border-radius: 10px;'>"
-            + "<br>".join([f"<b>{col}:</b> {row[col]}" for col in df.columns])
-            + "</div>",
-            unsafe_allow_html=True,
-        )
+        # Sección de datos scrolleable
+        with cols[0]:
+            st.markdown(
+                "<div class='registro-scroll'>" +
+                "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                "</div>",
+                unsafe_allow_html=True
+            )
 
-    with cols[1]:
-        key_flag = f"flag_{idx}"
-        key_btn = f"btn_{idx}"
+        # Acción: botón o tick
+        with cols[1]:
+            key_flag = f"flag_{idx}"
+            key_btn = f"btn_{idx}"
 
-        if st.session_state.get(key_flag, False):
-            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
-        else:
-            if st.button("Sí", key=key_btn):
-                st.session_state[key_flag] = True
-              
+            if st.session_state.get(key_flag, False):
+                st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
+            else:
+                if st.button("Sí", key=key_btn):
+                    st.session_state[key_flag] = True
+                    st.experimental_rerun()
