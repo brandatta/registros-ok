@@ -40,4 +40,3 @@ def get_data():
         if connection.is_connected():
             connection.close()
 
-
