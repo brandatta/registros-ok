@@ -1,5 +1,9 @@
-streamlit==1.17.0
-mysql-connector-python==8.0.32
-pandas==1.3.3
-numpy==1.21.0
-setuptools==59.5.0
+streamlit
+mysql-connector-python
+pandas
+numpy
+setuptools
+rich
+markdown-it-py
+pygments
+mdurl
