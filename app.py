@@ -70,4 +70,4 @@ for idx, row in df.iterrows():
             else:
                 if st.button("Sí", key=key_btn):
                     st.session_state[key_flag] = True
-                    st.experimental_rerun()
+                
