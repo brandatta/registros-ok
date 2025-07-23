@@ -1,5 +1,5 @@
 streamlit==1.17.0
 mysql-connector-python==8.0.32
-pandas==1.2.5
-numpy==1.19.3
+pandas==1.0.5
+numpy==1.18.5
 setuptools==59.5.0
