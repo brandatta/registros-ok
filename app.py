@@ -26,27 +26,42 @@ def load_data():
 
 df = load_data()
 
+# ---------- MOSTRAR TABLA MANUAL ----------
 st.subheader("Primeros 10 registros")
 
-# ---------- MOSTRAR REGISTROS COMO FILAS HORIZONTALES ----------
+# Estilo CSS para tabla
+st.markdown("""
+    <style>
+    .registro {
+        display: flex;
+        border-bottom: 1px solid #ccc;
+        padding: 6px 0;
+        align-items: center;
+        font-size: 14px;
+    }
+    .celda {
+        width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .cabecera {
+        font-weight: bold;
+        border-bottom: 2px solid black;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Mostrar cabecera
-columnas = list(df.columns) + ["Acción"]
-st.markdown(
-    "<style>th, td { padding: 6px 12px; }</style>",
-    unsafe_allow_html=True
-)
-st.markdown(
-    "<div style='font-weight:bold; display:flex; gap:20px; margin-bottom:10px;'>"
-    + "".join([f"<div style='width:150px'>{col}</div>" for col in columnas])
-    + "</div>",
-    unsafe_allow_html=True,
-)
+st.markdown("<div class='registro cabecera'>" +
+    "".join([f"<div class='celda'>{col}</div>" for col in df.columns]) +
+    "<div class='celda'>Acción</div></div>", unsafe_allow_html=True)
 
-# Mostrar filas
+# Mostrar registros
 for idx, row in df.iterrows():
-    cols = st.columns([1] * len(columnas))  # una columna por campo
+    cols = st.columns(len(df.columns) + 1)  # columnas + acción
 
-    # Mostrar datos
+    # Mostrar celdas
     for i, col in enumerate(df.columns):
         cols[i].write(str(row[col]))
 
