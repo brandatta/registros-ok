@@ -31,6 +31,9 @@ def actualizar_procesado(id_valor, estado):
 if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
 
+if "mensaje_exito" not in st.session_state:
+    st.session_state["mensaje_exito"] = None
+
 # ---------- CARGA DE DATOS ----------
 def load_data():
     conn = get_connection()
@@ -65,6 +68,11 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
+    # ---------- MENSAJE TEMPORAL ----------
+    if st.session_state["mensaje_exito"]:
+        st.success(st.session_state["mensaje_exito"])
+        st.session_state["mensaje_exito"] = None
+
     # ---------- TABS ----------
     tab1, tab2 = st.tabs([
         f"🔄 Pendientes ({len(df_pendientes)})",
@@ -88,10 +96,12 @@ def main():
                         actualizar_procesado(row["id"], 1)
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
+                        st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["last_action"] = True
                 with cols[2]:
                     if st.button("No", key=f"btn_no_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
+                        st.session_state["mensaje_exito"] = f"❌ Registro {row['id']} marcado como 'No'."
                         st.session_state["last_action"] = True
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -113,6 +123,7 @@ def main():
                 with cols[2]:
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
+                        st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
                         st.session_state["last_action"] = True
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -153,7 +164,7 @@ def main():
 # ---------- EJECUTAR ----------
 main()
 
-# ---------- AUTO-REFRESCO LOCAL LUEGO DE CAMBIO ----------
+# ---------- AUTO REFRESCO POST ACCIÓN ----------
 if "last_action" in st.session_state:
     del st.session_state["last_action"]
     st.experimental_rerun()
