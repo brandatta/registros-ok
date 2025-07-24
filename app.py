@@ -33,10 +33,6 @@ if "hora_inicio" not in st.session_state:
 if "df_data" not in st.session_state:
     st.session_state["df_data"] = None
 
-# ---------- BOTÓN MANUAL DE ACTUALIZACIÓN ----------
-st.markdown("### 🔁 Recargar registros desde la base de datos")
-actualizar_btn = st.button("🔄 Actualizar registros")
-
 # ---------- CARGA DE DATOS ----------
 def load_data():
     conn = get_connection()
@@ -44,6 +40,11 @@ def load_data():
     conn.close()
     return df
 
+# ---------- BOTÓN MANUAL DE ACTUALIZACIÓN ----------
+st.markdown("### 🔁 Recargar registros desde la base de datos")
+actualizar_btn = st.button("🔄 Actualizar registros", key="actualizar_btn")
+
+# ---------- CARGAR DATOS ----------
 if actualizar_btn or st.session_state["df_data"] is None:
     st.session_state["df_data"] = load_data()
 
