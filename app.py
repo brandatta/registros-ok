@@ -30,8 +30,8 @@ def actualizar_procesado(id_valor, estado):
 # ---------- VARIABLES DE ESTADO ----------
 if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
-if "tab_actual" not in st.session_state:
-    st.session_state["tab_actual"] = "pendientes"
+if "df_data" not in st.session_state:
+    st.session_state["df_data"] = None
 
 # ---------- CARGA DE DATOS ----------
 def load_data():
@@ -40,27 +40,16 @@ def load_data():
     conn.close()
     return df
 
-# Si se requiere refrescar por acción reciente
-if st.session_state.get("refrescar", False):
-    df = load_data()
-    st.session_state["refrescar"] = False
-else:
-    df = load_data()
+# ---------- BOTÓN MANUAL DE ACTUALIZACIÓN ----------
+if st.button("🔄 Actualizar registros"):
+    st.session_state["df_data"] = load_data()
 
+# ---------- Cargar datos si es primera vez o tras actualizar ----------
+if st.session_state["df_data"] is None:
+    st.session_state["df_data"] = load_data()
+
+df = st.session_state["df_data"]
 total_registros = len(df)
-df_pendientes = df[df["procesado"] == 0]
-df_procesados = df[df["procesado"] == 1]
-
-# ---------- CAMBIO DE PESTAÑA AUTOMÁTICO ----------
-if st.session_state["tab_actual"] == "pendientes":
-    active_tab = 0
-else:
-    active_tab = 1
-
-tab1, tab2 = st.tabs([
-    f"🔄 Pendientes ({len(df_pendientes)})",
-    f"✅ Procesados ({len(df_procesados)})"
-])
 
 # ---------- ESTILO ----------
 st.markdown("""
@@ -81,58 +70,55 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- TAB 1: PENDIENTES ----------
-with tab1:
-    if active_tab == 0:
-        st.subheader("Registros no marcados como 'Sí'")
-        for _, row in df_pendientes.iterrows():
-            with st.container():
-                cols = st.columns([10, 1, 1, 0.5])
-                with cols[0]:
-                    st.markdown(
-                        "<div class='registro-scroll'>" +
-                        "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True
-                    )
-                with cols[1]:
-                    if st.button("Sí", key=f"btn_si_{row['id']}"):
-                        actualizar_procesado(row["id"], 1)
-                        if not st.session_state["hora_inicio"]:
-                            st.session_state["hora_inicio"] = datetime.now()
-                        st.session_state["tab_actual"] = "procesados"
-                        st.session_state["refrescar"] = True
-                        st.experimental_rerun()
-                with cols[2]:
-                    if st.button("No", key=f"btn_no_{row['id']}"):
-                        actualizar_procesado(row["id"], 0)
-                        st.session_state["refrescar"] = True
-                        st.experimental_rerun()
-                with cols[3]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+# ---------- SEPARAR REGISTROS ----------
+df_pendientes = df[df["procesado"] == 0]
+df_procesados = df[df["procesado"] == 1]
 
-# ---------- TAB 2: PROCESADOS ----------
+tab1, tab2 = st.tabs([
+    f"🔄 Pendientes ({len(df_pendientes)})",
+    f"✅ Procesados ({len(df_procesados)})"
+])
+
+# ---------- TAB 1 ----------
+with tab1:
+    st.subheader("Registros no marcados como 'Sí'")
+    for _, row in df_pendientes.iterrows():
+        with st.container():
+            cols = st.columns([10, 1, 1, 0.5])
+            with cols[0]:
+                st.markdown(
+                    "<div class='registro-scroll'>" +
+                    "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                    "</div>", unsafe_allow_html=True
+                )
+            with cols[1]:
+                if st.button("Sí", key=f"btn_si_{row['id']}"):
+                    actualizar_procesado(row["id"], 1)
+            with cols[2]:
+                if st.button("No", key=f"btn_no_{row['id']}"):
+                    actualizar_procesado(row["id"], 0)
+            with cols[3]:
+                st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+
+# ---------- TAB 2 ----------
 with tab2:
-    if active_tab == 1:
-        st.subheader("Registros ya marcados como 'Sí'")
-        for _, row in df_procesados.iterrows():
-            with st.container():
-                cols = st.columns([10, 1, 1, 0.5])
-                with cols[0]:
-                    st.markdown(
-                        "<div class='registro-scroll'>" +
-                        "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True
-                    )
-                with cols[1]:
-                    st.button("Sí", key=f"btn_si_proc_{row['id']}")
-                with cols[2]:
-                    if st.button("No", key=f"btn_no_proc_{row['id']}"):
-                        actualizar_procesado(row["id"], 0)
-                        st.session_state["tab_actual"] = "pendientes"
-                        st.session_state["refrescar"] = True
-                        st.experimental_rerun()
-                with cols[3]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+    st.subheader("Registros ya marcados como 'Sí'")
+    for _, row in df_procesados.iterrows():
+        with st.container():
+            cols = st.columns([10, 1, 1, 0.5])
+            with cols[0]:
+                st.markdown(
+                    "<div class='registro-scroll'>" +
+                    "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                    "</div>", unsafe_allow_html=True
+                )
+            with cols[1]:
+                st.button("Sí", key=f"btn_si_proc_{row['id']}")
+            with cols[2]:
+                if st.button("No", key=f"btn_no_proc_{row['id']}"):
+                    actualizar_procesado(row["id"], 0)
+            with cols[3]:
+                st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
 # ---------- MÉTRICAS ----------
 st.markdown("---")
@@ -167,7 +153,3 @@ if st.session_state["hora_inicio"]:
 else:
     st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
 
-# ---------- BOTÓN REFRESCAR ----------
-st.markdown("#### 🔄")
-if st.button("Actualizar estimaciones"):
-    st.experimental_rerun()
