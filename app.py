@@ -59,8 +59,9 @@ st.markdown("""
 # ---------- MOSTRAR CADA REGISTRO ----------
 for idx, row in df.iterrows():
     with st.container():
-        cols = st.columns([10, 3])  # datos | acción (Sí, No, ✓)
+        cols = st.columns([10, 1, 1, 0.5])  # datos | Sí | No | ✓
 
+        # ----------- DATOS ----------
         with cols[0]:
             st.markdown(
                 "<div class='registro-scroll'>" +
@@ -69,22 +70,26 @@ for idx, row in df.iterrows():
                 unsafe_allow_html=True
             )
 
-        with cols[1]:
-            key_flag = f"flag_{row['id']}"
-            if key_flag not in st.session_state:
-                st.session_state[key_flag] = row["procesado"] == 1
+        # ----------- INICIALIZAR ESTADO ----------
+        key_flag = f"flag_{row['id']}"
+        if key_flag not in st.session_state:
+            st.session_state[key_flag] = row["procesado"] == 1
 
+        # ----------- BOTÓN SÍ ----------
+        with cols[1]:
             if st.button("Sí", key=f"btn_si_{row['id']}"):
                 actualizar_procesado(row["id"], 1)
                 st.session_state[key_flag] = True
                 st.rerun()
 
+        # ----------- BOTÓN NO ----------
         with cols[2]:
             if st.button("No", key=f"btn_no_{row['id']}"):
                 actualizar_procesado(row["id"], 0)
                 st.session_state[key_flag] = False
                 st.rerun()
 
-        with cols[2]:
+        # ----------- TILDE ✔️ ----------
+        with cols[3]:
             if st.session_state[key_flag]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
