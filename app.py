@@ -32,10 +32,11 @@ def actualizar_procesado(id_valor, estado):
 def load_data():
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM inventario LIMIT 10", conn)
+    total = pd.read_sql("SELECT COUNT(*) as total FROM inventario", conn)
     conn.close()
-    return df
+    return df, int(total["total"].iloc[0])
 
-df = load_data()
+df, total_registros = load_data()
 
 # ---------- ESTILO SCROLL HORIZONTAL ----------
 st.markdown("""
@@ -56,7 +57,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- SEPARAR REGISTROS EN PESTAÑAS ----------
+# ---------- SEPARAR REGISTROS ----------
 df_pendientes = df[df["procesado"] == 0]
 df_procesados = df[df["procesado"] == 1]
 
@@ -76,7 +77,6 @@ with tab1:
                     "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
                     "</div>", unsafe_allow_html=True
                 )
-
             key_flag = f"flag_{row['id']}"
             if key_flag not in st.session_state:
                 st.session_state[key_flag] = False
@@ -110,13 +110,12 @@ with tab2:
                     "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
                     "</div>", unsafe_allow_html=True
                 )
-
             key_flag = f"flag_{row['id']}"
             if key_flag not in st.session_state:
                 st.session_state[key_flag] = True
 
             with cols[1]:
-                st.button("Sí", key=f"btn_si_{row['id']}")  # no cambia estado
+                st.button("Sí", key=f"btn_si_{row['id']}")
 
             with cols[2]:
                 if st.button("No", key=f"btn_no_{row['id']}"):
@@ -127,52 +126,10 @@ with tab2:
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-# ---------- SUBTOTAL Y PORCENTAJE ----------
+# ---------- RESUMEN GENERAL ----------
 st.markdown("---")
-subtotal_local = len(df_procesados)
-total_local = len(df_procesados) + len(df_pendientes)
-
-st.markdown("### 📊 Estado de los registros visibles")
-col1, col2 = st.columns([1, 3])
-
-porcentaje_local = round((subtotal_local / total_local) * 100, 1) if total_local > 0 else 0.0
-
-with col1:
-    st.metric(label="✅ Porcentaje marcado como 'Sí'", value=f"{porcentaje_local} %")
-
-with col2:
-    st.progress(int(porcentaje_local))
-
-st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
-
-# ---------- INFORMACIÓN DE TIEMPOS ----------
-st.markdown("---")
-st.markdown("### ⏱️ Estimación temporal")
-
-if "hora_inicio" in st.session_state:
-    hora_inicio = st.session_state["hora_inicio"]
-    ahora = datetime.now()
-    tiempo_transcurrido = ahora - hora_inicio
-    minutos = tiempo_transcurrido.total_seconds() / 60
-
-    if subtotal_local > 0:
-        estimado_total_min = (minutos / subtotal_local) * total_local
-        hora_fin_estimada = hora_inicio + timedelta(minutes=estimado_total_min)
-
-        st.info(f"🕒 Hora de inicio: **{hora_inicio.strftime('%H:%M:%S')}**")
-        st.info(f"⏳ Tiempo transcurrido: **{str(tiempo_transcurrido).split('.')[0]}**")
-        st.info(f"📅 Estimación de finalización: **{hora_fin_estimada.strftime('%H:%M:%S')}**")
-    else:
-        st.warning("Aún no se marcó ningún registro como 'Sí', no se puede calcular estimación.")
-else:
-    st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
-
-# ---------- BOTÓN DE REFRESCO MANUAL ----------
-st.markdown("#### 🔄")
-if st.button("Actualizar estimaciones"):
-    st.rerun()
-subtotal_global = len(df_procesados)
-porcentaje = round((subtotal_global / total_registros) * 100, 1) if total_registros > 0 else 0.0
+subtotal = len(df_procesados)
+porcentaje = round((subtotal / total_registros) * 100, 1) if total_registros > 0 else 0.0
 
 st.markdown("### 📊 Estado general del inventario")
 col1, col2 = st.columns([1, 3])
@@ -183,7 +140,7 @@ with col1:
 with col2:
     st.progress(int(porcentaje))
 
-st.success(f"🔢 Subtotal de registros marcados como 'Sí': **{subtotal_global}** de {total_registros}")
+st.success(f"🔢 Subtotal de registros marcados como 'Sí': **{subtotal}** de {total_registros}")
 
 # ---------- INFORMACIÓN DE TIEMPOS ----------
 st.markdown("---")
@@ -195,8 +152,8 @@ if "hora_inicio" in st.session_state:
     tiempo_transcurrido = ahora - hora_inicio
     minutos = tiempo_transcurrido.total_seconds() / 60
 
-    if subtotal_global > 0:
-        estimado_total_min = (minutos / subtotal_global) * total_registros
+    if subtotal > 0:
+        estimado_total_min = (minutos / subtotal) * total_registros
         hora_fin_estimada = hora_inicio + timedelta(minutes=estimado_total_min)
 
         st.info(f"🕒 Hora de inicio: **{hora_inicio.strftime('%H:%M:%S')}**")
