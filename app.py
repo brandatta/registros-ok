@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from datetime import datetime
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
@@ -17,12 +16,12 @@ def get_connection():
         port=3306,
     )
 
-# ---------- ACTUALIZAR REGISTRO ----------
-def marcar_como_procesado(id_valor):
+# ---------- ACTUALIZAR PROCESADO ----------
+def actualizar_procesado(id_valor, estado):
     conn = get_connection()
     cursor = conn.cursor()
-    query = "UPDATE inventario SET procesado = 1, proc_ts = NOW() WHERE id = %s"
-    cursor.execute(query, (id_valor,))
+    query = "UPDATE inventario SET procesado = %s, proc_ts = NOW() WHERE id = %s"
+    cursor.execute(query, (estado, id_valor))
     conn.commit()
     cursor.close()
     conn.close()
@@ -60,7 +59,7 @@ st.markdown("""
 # ---------- MOSTRAR CADA REGISTRO ----------
 for idx, row in df.iterrows():
     with st.container():
-        cols = st.columns([10, 2])  # datos | acción
+        cols = st.columns([10, 3])  # datos | acción (Sí, No, ✓)
 
         with cols[0]:
             st.markdown(
@@ -71,20 +70,21 @@ for idx, row in df.iterrows():
             )
 
         with cols[1]:
-            key_flag = f"flag_{row['id']}"  # usamos el ID real como clave
+            key_flag = f"flag_{row['id']}"
+            if key_flag not in st.session_state:
+                st.session_state[key_flag] = row["procesado"] == 1
 
-            col_btn, col_tick = st.columns([1, 0.3])
+            if st.button("Sí", key=f"btn_si_{row['id']}"):
+                actualizar_procesado(row["id"], 1)
+                st.session_state[key_flag] = True
+                st.rerun()
 
-            with col_btn:
-                if key_flag not in st.session_state:
-                    st.session_state[key_flag] = row['procesado'] == 1
+        with cols[2]:
+            if st.button("No", key=f"btn_no_{row['id']}"):
+                actualizar_procesado(row["id"], 0)
+                st.session_state[key_flag] = False
+                st.rerun()
 
-                if st.button("Sí", key=f"btn_{row['id']}"):
-                    marcar_como_procesado(row["id"])
-                    st.session_state[key_flag] = True
-                    st.rerun()
-
-            with col_tick:
-                if st.session_state[key_flag]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
-
+        with cols[2]:
+            if st.session_state[key_flag]:
+                st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
