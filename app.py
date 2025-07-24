@@ -74,7 +74,6 @@ tab1, tab2 = st.tabs([
 with tab1:
     st.subheader("Registros no marcados como 'Sí'")
     for _, row in df_pendientes.iterrows():
-        key_flag = f"flag_{row['id']}"
         with st.container():
             cols = st.columns([10, 1, 1, 0.5])
             with cols[0]:
@@ -109,7 +108,7 @@ with tab2:
                     "</div>", unsafe_allow_html=True
                 )
             with cols[1]:
-                st.button("Sí", key=f"btn_si_proc_{row['id']}")
+                st.button("Sí", key=f"btn_si_proc_{row['id']}")  # No hace nada, es solo visual
             with cols[2]:
                 if st.button("No", key=f"btn_no_proc_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
