@@ -34,8 +34,11 @@ if "mensaje_exito" not in st.session_state:
     st.session_state["mensaje_exito"] = None
 if "ultimo_tick" not in st.session_state:
     st.session_state["ultimo_tick"] = None
+if "refrescar" not in st.session_state:
+    st.session_state["refrescar"] = False
 
 # ---------- FUNCIÓN DE CARGA ----------
+@st.cache_data(ttl=0)
 def load_data():
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
@@ -44,6 +47,15 @@ def load_data():
 
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
+    if st.session_state["refrescar"]:
+        st.cache_data.clear()
+        st.session_state["refrescar"] = False
+
+    # Botón de actualización manual
+    if st.button("🔄 Actualizar registros"):
+        st.session_state["refrescar"] = True
+        st.experimental_rerun()
+
     df = load_data()
     total_registros = len(df)
 
@@ -100,6 +112,7 @@ def main():
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["ultimo_tick"] = row["id"]
                         st.session_state["last_action"] = True
+                        st.experimental_rerun()
                 with cols[2]:
                     if st.session_state.get("ultimo_tick") == row["id"]:
                         st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -121,6 +134,7 @@ def main():
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
                         st.session_state["last_action"] = True
+                        st.experimental_rerun()
 
     # ---------- MÉTRICAS ----------
     st.markdown("---")
@@ -158,8 +172,3 @@ def main():
 # ---------- EJECUTAR ----------
 main()
 
-# ---------- AUTOREFRESH POST ACCIÓN ----------
-if "last_action" in st.session_state:
-    del st.session_state["last_action"]
-    del st.session_state["ultimo_tick"]
-    st.stop()
