@@ -27,24 +27,25 @@ def actualizar_procesado(id_valor, estado):
     cursor.close()
     conn.close()
 
-# ---------- VARIABLES DE ESTADO ----------
-if "hora_inicio" not in st.session_state:
-    st.session_state["hora_inicio"] = None
-if "mensaje_exito" not in st.session_state:
-    st.session_state["mensaje_exito"] = None
-if "tab_activa" not in st.session_state:
-    st.session_state["tab_activa"] = "pendientes"
-
-# ---------- FUNCIÓN DE CARGA ----------
+# ---------- CARGA DE DATOS ----------
 def load_data():
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
     conn.close()
     return df
 
+# ---------- VARIABLES DE ESTADO ----------
+if "hora_inicio" not in st.session_state:
+    st.session_state["hora_inicio"] = None
+if "mensaje_exito" not in st.session_state:
+    st.session_state["mensaje_exito"] = None
+if "ocultos" not in st.session_state:
+    st.session_state["ocultos"] = set()
+
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
     df = load_data()
+    df = df[~df["id"].isin(st.session_state["ocultos"])]
     total_registros = len(df)
 
     df_pendientes = df[df["procesado"] == 0]
@@ -74,16 +75,14 @@ def main():
         st.success(st.session_state["mensaje_exito"])
         st.session_state["mensaje_exito"] = None
 
-    # ---------- TABS PERSONALIZADAS ----------
-    tabs = {
-        "🔄 Pendientes": "pendientes",
-        "✅ Procesados": "procesados"
-    }
-    tab_selected = st.radio("Seleccionar vista:", list(tabs.keys()), index=0 if st.session_state["tab_activa"] == "pendientes" else 1)
-    st.session_state["tab_activa"] = tabs[tab_selected]
+    # ---------- TABS ----------
+    tab1, tab2 = st.tabs([
+        f"🔄 Pendientes ({len(df_pendientes)})",
+        f"✅ Procesados ({len(df_procesados)})"
+    ])
 
-    # ---------- TAB PENDIENTES ----------
-    if st.session_state["tab_activa"] == "pendientes":
+    # ---------- TAB 1 ----------
+    with tab1:
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
             with st.container():
@@ -97,6 +96,7 @@ def main():
                 with cols[1]:
                     if st.button("Sí", key=f"btn_si_{row['id']}"):
                         actualizar_procesado(row["id"], 1)
+                        st.session_state["ocultos"].add(row["id"])
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
@@ -105,12 +105,13 @@ def main():
                     if st.button("No", key=f"btn_no_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"❌ Registro {row['id']} marcado como 'No'."
+                        st.session_state["ocultos"].add(row["id"])
                         st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-    # ---------- TAB PROCESADOS ----------
-    if st.session_state["tab_activa"] == "procesados":
+    # ---------- TAB 2 ----------
+    with tab2:
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
             with st.container():
@@ -127,6 +128,7 @@ def main():
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
+                        st.session_state["ocultos"].add(row["id"])
                         st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -166,4 +168,3 @@ def main():
 
 # ---------- EJECUTAR ----------
 main()
-
