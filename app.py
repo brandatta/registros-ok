@@ -34,16 +34,6 @@ def load_data():
     conn.close()
     return df
 
-# ---------- CONTAR PROCESADOS ----------
-def contar_procesados():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM inventario WHERE procesado = 1")
-    resultado = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    return resultado
-
 df = load_data()
 st.subheader("Primeros 10 registros")
 
@@ -99,37 +89,22 @@ for idx, row in df.iterrows():
             if st.session_state[key_flag]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-# ---------- SUBTOTAL FINAL ----------
+# ---------- SUBTOTAL Y PORCENTAJE SOLO DE LOS 10 REGISTROS ----------
 st.markdown("---")
-subtotal = contar_procesados()
-st.success(f"🔢 Subtotal de registros marcados como 'Sí': **{subtotal}**")
+procesados_en_df = df[df["procesado"] == 1]
+subtotal_local = len(procesados_en_df)
+total_local = len(df)
 
-# ---------- SUBTOTAL Y PORCENTAJE ----------
-st.markdown("---")
-
-# Obtener cantidad procesados y total
-subtotal = contar_procesados()
-
-def contar_total():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM inventario")
-    total = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    return total
-
-total_registros = contar_total()
-
-# Calcular porcentaje
-porcentaje = round((subtotal / total_registros) * 100, 1) if total_registros > 0 else 0.0
-
-# Mostrar métrica y barra
-st.markdown("### 📊 Estado general del inventario")
+# Mostrar resumen visual
+st.markdown("### 📊 Estado de los registros visibles")
 col1, col2 = st.columns([1, 3])
 
+porcentaje_local = round((subtotal_local / total_local) * 100, 1) if total_local > 0 else 0.0
+
 with col1:
-    st.metric(label="✅ Porcentaje marcado como 'Sí'", value=f"{porcentaje} %")
+    st.metric(label="✅ Porcentaje marcado como 'Sí'", value=f"{porcentaje_local} %")
 
 with col2:
-    st.progress(int(porcentaje))
+    st.progress(int(porcentaje_local))
+
+st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
