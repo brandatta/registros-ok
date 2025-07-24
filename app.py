@@ -38,7 +38,6 @@ if "refrescar" not in st.session_state:
     st.session_state["refrescar"] = False
 
 # ---------- FUNCIÓN DE CARGA ----------
-@st.cache_data(ttl=0)
 def load_data():
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
@@ -47,18 +46,17 @@ def load_data():
 
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
-    if st.session_state["refrescar"]:
-        st.cache_data.clear()
-        st.session_state["refrescar"] = False
-
-    # Botón de actualización manual
+    # ---------- BOTÓN MANUAL DE REFRESCO ----------
     if st.button("🔄 Actualizar registros"):
         st.session_state["refrescar"] = True
-        st.experimental_rerun()
 
-    df = load_data()
+    if st.session_state["refrescar"]:
+        st.session_state["refrescar"] = False
+        df = load_data()
+    else:
+        df = load_data()
+
     total_registros = len(df)
-
     df_pendientes = df[df["procesado"] == 0]
     df_procesados = df[df["procesado"] == 1]
 
@@ -111,8 +109,8 @@ def main():
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["ultimo_tick"] = row["id"]
-                        st.session_state["last_action"] = True
-                        st.experimental_rerun()
+                        st.session_state["refrescar"] = True
+                        st.stop()
                 with cols[2]:
                     if st.session_state.get("ultimo_tick") == row["id"]:
                         st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -133,8 +131,8 @@ def main():
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.session_state["last_action"] = True
-                        st.experimental_rerun()
+                        st.session_state["refrescar"] = True
+                        st.stop()
 
     # ---------- MÉTRICAS ----------
     st.markdown("---")
@@ -171,4 +169,3 @@ def main():
 
 # ---------- EJECUTAR ----------
 main()
-
