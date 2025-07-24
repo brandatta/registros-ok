@@ -38,6 +38,8 @@ if "refrescar" not in st.session_state:
     st.session_state["refrescar"] = False
 if "refresh_estimacion" not in st.session_state:
     st.session_state["refresh_estimacion"] = False
+if "pestaña_activa" not in st.session_state:
+    st.session_state["pestaña_activa"] = 0  # 0 = pendientes, 1 = procesados
 
 # ---------- FUNCIÓN DE CARGA ----------
 def load_data():
@@ -83,53 +85,60 @@ def main():
         st.success(st.session_state["mensaje_exito"])
         st.session_state["mensaje_exito"] = None
 
-    tab1, tab2 = st.tabs([
+    tabs = st.tabs([
         f"🔄 Pendientes ({len(df_pendientes)})",
         f"✅ Procesados ({len(df_procesados)})"
     ])
 
-    with tab1:
-        st.subheader("Registros no marcados como 'Sí'")
-        for _, row in df_pendientes.iterrows():
-            with st.container():
-                cols = st.columns([10, 1, 0.5])
-                with cols[0]:
-                    st.markdown(
-                        "<div class='registro-scroll'>" +
-                        "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True
-                    )
-                with cols[1]:
-                    if st.button("Sí", key=f"btn_si_{row['id']}"):
-                        actualizar_procesado(row["id"], 1)
-                        if not st.session_state["hora_inicio"]:
-                            st.session_state["hora_inicio"] = datetime.now()
-                        st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
-                        st.session_state["ultimo_tick"] = row["id"]
-                        st.session_state["refrescar"] = True
-                        st.stop()
-                with cols[2]:
-                    if st.session_state.get("ultimo_tick") == row["id"]:
-                        st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+    # ---------- TAB 1 ----------
+    with tabs[0]:
+        if st.session_state["pestaña_activa"] == 0:
+            st.subheader("Registros no marcados como 'Sí'")
+            for _, row in df_pendientes.iterrows():
+                with st.container():
+                    cols = st.columns([10, 1, 0.5])
+                    with cols[0]:
+                        st.markdown(
+                            "<div class='registro-scroll'>" +
+                            "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                            "</div>", unsafe_allow_html=True
+                        )
+                    with cols[1]:
+                        if st.button("Sí", key=f"btn_si_{row['id']}"):
+                            actualizar_procesado(row["id"], 1)
+                            if not st.session_state["hora_inicio"]:
+                                st.session_state["hora_inicio"] = datetime.now()
+                            st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
+                            st.session_state["ultimo_tick"] = row["id"]
+                            st.session_state["refrescar"] = True
+                            st.session_state["pestaña_activa"] = 0
+                            st.experimental_rerun()
+                    with cols[2]:
+                        if st.session_state.get("ultimo_tick") == row["id"]:
+                            st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-    with tab2:
-        st.subheader("Registros ya marcados como 'Sí'")
-        for _, row in df_procesados.iterrows():
-            with st.container():
-                cols = st.columns([10, 1])
-                with cols[0]:
-                    st.markdown(
-                        "<div class='registro-scroll'>" +
-                        "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True
-                    )
-                with cols[1]:
-                    if st.button("No", key=f"btn_no_proc_{row['id']}"):
-                        actualizar_procesado(row["id"], 0)
-                        st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.session_state["refrescar"] = True
-                        st.stop()
+    # ---------- TAB 2 ----------
+    with tabs[1]:
+        if st.session_state["pestaña_activa"] == 1:
+            st.subheader("Registros ya marcados como 'Sí'")
+            for _, row in df_procesados.iterrows():
+                with st.container():
+                    cols = st.columns([10, 1])
+                    with cols[0]:
+                        st.markdown(
+                            "<div class='registro-scroll'>" +
+                            "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                            "</div>", unsafe_allow_html=True
+                        )
+                    with cols[1]:
+                        if st.button("No", key=f"btn_no_proc_{row['id']}"):
+                            actualizar_procesado(row["id"], 0)
+                            st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
+                            st.session_state["refrescar"] = True
+                            st.session_state["pestaña_activa"] = 1
+                            st.experimental_rerun()
 
+    # ---------- MÉTRICAS ----------
     st.markdown("---")
     subtotal_local = len(df_procesados)
     total_local = subtotal_local + len(df_pendientes)
