@@ -76,7 +76,7 @@ def main():
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
             with st.container():
-                cols = st.columns([10, 1, 1, 0.5])
+                cols = st.columns([10, 1, 0.5])
                 with cols[0]:
                     st.markdown(
                         "<div class='registro-scroll'>" +
@@ -91,11 +91,6 @@ def main():
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["last_action"] = True
                 with cols[2]:
-                    if st.button("No", key=f"btn_no_{row['id']}"):
-                        actualizar_procesado(row["id"], 0)
-                        st.session_state["mensaje_exito"] = f"❌ Registro {row['id']} marcado como 'No'."
-                        st.session_state["last_action"] = True
-                with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
     # ---------- TAB 2 ----------
@@ -103,7 +98,7 @@ def main():
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
             with st.container():
-                cols = st.columns([10, 1, 1, 0.5])
+                cols = st.columns([10, 1])
                 with cols[0]:
                     st.markdown(
                         "<div class='registro-scroll'>" +
@@ -111,14 +106,10 @@ def main():
                         "</div>", unsafe_allow_html=True
                     )
                 with cols[1]:
-                    st.button("Sí", key=f"btn_si_proc_{row['id']}")
-                with cols[2]:
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
                         st.session_state["last_action"] = True
-                with cols[3]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
     # ---------- MÉTRICAS ----------
     st.markdown("---")
@@ -166,4 +157,4 @@ main()
 # ---------- AUTOREFRESH POST ACCIÓN ----------
 if "last_action" in st.session_state:
     del st.session_state["last_action"]
-    st.stop()  # para forzar recarga sin usar experimental_rerun
+    st.stop()
