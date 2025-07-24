@@ -41,18 +41,16 @@ def load_data():
     return df
 
 # ---------- BOTÓN MANUAL DE ACTUALIZACIÓN ----------
-if st.button("🔄 Actualizar registros"):
+st.markdown("### 🔄 Recargar registros desde la base de datos")
+if st.button("🔁 Actualizar registros"):
     st.session_state["df_data"] = load_data()
 
-# ---------- Cargar datos iniciales ----------
+# ---------- Cargar datos iniciales si no existen ----------
 if st.session_state["df_data"] is None:
     st.session_state["df_data"] = load_data()
 
-# ---------- Trabajamos con los datos ----------
 df = st.session_state["df_data"]
 total_registros = len(df)
-df_pendientes = df[df["procesado"] == 0]
-df_procesados = df[df["procesado"] == 1]
 
 # ---------- ESTILO ----------
 st.markdown("""
@@ -73,7 +71,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- TABS ----------
+# ---------- SEPARAR REGISTROS ----------
+df_pendientes = df[df["procesado"] == 0]
+df_procesados = df[df["procesado"] == 1]
+
 tab1, tab2 = st.tabs([
     f"🔄 Pendientes ({len(df_pendientes)})",
     f"✅ Procesados ({len(df_procesados)})"
@@ -94,15 +95,9 @@ with tab1:
             with cols[1]:
                 if st.button("Sí", key=f"btn_si_{row['id']}"):
                     actualizar_procesado(row["id"], 1)
-                    if not st.session_state["hora_inicio"]:
-                        st.session_state["hora_inicio"] = datetime.now()
-                    st.session_state["df_data"] = load_data()
-                    st.experimental_rerun()
             with cols[2]:
                 if st.button("No", key=f"btn_no_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
-                    st.session_state["df_data"] = load_data()
-                    st.experimental_rerun()
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
@@ -123,8 +118,6 @@ with tab2:
             with cols[2]:
                 if st.button("No", key=f"btn_no_proc_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
-                    st.session_state["df_data"] = load_data()
-                    st.experimental_rerun()
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
@@ -160,4 +153,3 @@ if st.session_state["hora_inicio"]:
         st.warning("Aún no se marcó ningún registro como 'Sí'.")
 else:
     st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
-
