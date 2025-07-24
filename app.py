@@ -79,7 +79,6 @@ for idx, row in df.iterrows():
                 actualizar_procesado(row["id"], 1)
                 st.session_state[key_flag] = True
 
-                # Guardar hora de inicio si es el primer "Sí"
                 if "hora_inicio" not in st.session_state:
                     st.session_state["hora_inicio"] = datetime.now()
 
@@ -135,3 +134,8 @@ if "hora_inicio" in st.session_state:
         st.warning("Aún no se marcó ningún registro como 'Sí', no se puede calcular estimación.")
 else:
     st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
+
+# ---------- BOTÓN DE REFRESCO MANUAL ----------
+st.markdown("#### 🔄 ¿Los tiempos no están actualizados?")
+if st.button("Actualizar estimaciones"):
+    st.rerun()
