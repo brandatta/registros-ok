@@ -32,6 +32,8 @@ if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
 if "mensaje_exito" not in st.session_state:
     st.session_state["mensaje_exito"] = None
+if "tab_activa" not in st.session_state:
+    st.session_state["tab_activa"] = "pendientes"
 
 # ---------- FUNCIÓN DE CARGA ----------
 def load_data():
@@ -72,14 +74,16 @@ def main():
         st.success(st.session_state["mensaje_exito"])
         st.session_state["mensaje_exito"] = None
 
-    # ---------- TABS ----------
-    tab1, tab2 = st.tabs([
-        f"🔄 Pendientes ({len(df_pendientes)})",
-        f"✅ Procesados ({len(df_procesados)})"
-    ])
+    # ---------- TABS PERSONALIZADAS ----------
+    tabs = {
+        "🔄 Pendientes": "pendientes",
+        "✅ Procesados": "procesados"
+    }
+    tab_selected = st.radio("Seleccionar vista:", list(tabs.keys()), index=0 if st.session_state["tab_activa"] == "pendientes" else 1)
+    st.session_state["tab_activa"] = tabs[tab_selected]
 
-    # ---------- TAB 1 ----------
-    with tab1:
+    # ---------- TAB PENDIENTES ----------
+    if st.session_state["tab_activa"] == "pendientes":
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
             with st.container():
@@ -96,17 +100,17 @@ def main():
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
-                        st.stop()
+                        st.experimental_rerun()
                 with cols[2]:
                     if st.button("No", key=f"btn_no_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"❌ Registro {row['id']} marcado como 'No'."
-                        st.stop()
+                        st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-    # ---------- TAB 2 ----------
-    with tab2:
+    # ---------- TAB PROCESADOS ----------
+    if st.session_state["tab_activa"] == "procesados":
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
             with st.container():
@@ -123,7 +127,7 @@ def main():
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.stop()
+                        st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
@@ -162,3 +166,4 @@ def main():
 
 # ---------- EJECUTAR ----------
 main()
+
