@@ -30,8 +30,6 @@ def actualizar_procesado(id_valor, estado):
 # ---------- VARIABLES DE ESTADO ----------
 if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
-if "ocultos" not in st.session_state:
-    st.session_state["ocultos"] = set()
 if "tab_actual" not in st.session_state:
     st.session_state["tab_actual"] = "pendientes"
 
@@ -42,13 +40,18 @@ def load_data():
     conn.close()
     return df
 
-df = load_data()
-total_registros = len(df)
+# Si se requiere refrescar por acción reciente
+if st.session_state.get("refrescar", False):
+    df = load_data()
+    st.session_state["refrescar"] = False
+else:
+    df = load_data()
 
-df_pendientes = df[(df["procesado"] == 0) & (~df["id"].isin(st.session_state["ocultos"]))]
+total_registros = len(df)
+df_pendientes = df[df["procesado"] == 0]
 df_procesados = df[df["procesado"] == 1]
 
-# ---------- CAMBIO DE PESTAÑA SI CLICKEA "SÍ" ----------
+# ---------- CAMBIO DE PESTAÑA AUTOMÁTICO ----------
 if st.session_state["tab_actual"] == "pendientes":
     active_tab = 0
 else:
@@ -94,15 +97,15 @@ with tab1:
                 with cols[1]:
                     if st.button("Sí", key=f"btn_si_{row['id']}"):
                         actualizar_procesado(row["id"], 1)
-                        st.session_state["ocultos"].add(row["id"])
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["tab_actual"] = "procesados"
+                        st.session_state["refrescar"] = True
                         st.experimental_rerun()
                 with cols[2]:
                     if st.button("No", key=f"btn_no_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
-                        st.session_state["ocultos"].discard(row["id"])
+                        st.session_state["refrescar"] = True
                         st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -125,8 +128,8 @@ with tab2:
                 with cols[2]:
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
-                        st.session_state["ocultos"].discard(row["id"])
                         st.session_state["tab_actual"] = "pendientes"
+                        st.session_state["refrescar"] = True
                         st.experimental_rerun()
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
