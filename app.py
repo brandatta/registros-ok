@@ -36,7 +36,6 @@ def load_data():
     return df
 
 df = load_data()
-st.subheader("Primeros 10 registros")
 
 # ---------- ESTILO SCROLL HORIZONTAL ----------
 st.markdown("""
@@ -57,47 +56,84 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- MOSTRAR CADA REGISTRO ----------
-for idx, row in df.iterrows():
-    with st.container():
-        cols = st.columns([10, 1, 1, 0.5])  # datos | Sí | No | ✓
+# ---------- SEPARAR REGISTROS EN PESTAÑAS ----------
+df_pendientes = df[df["procesado"] == 0]
+df_procesados = df[df["procesado"] == 1]
 
-        with cols[0]:
-            st.markdown(
-                "<div class='registro-scroll'>" +
-                "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                "</div>",
-                unsafe_allow_html=True
-            )
+tab1, tab2 = st.tabs([
+    f"🔄 Pendientes ({len(df_pendientes)})",
+    f"✅ Procesados ({len(df_procesados)})"
+])
 
-        key_flag = f"flag_{row['id']}"
-        if key_flag not in st.session_state:
-            st.session_state[key_flag] = row["procesado"] == 1
+with tab1:
+    st.subheader("Registros no marcados como 'Sí'")
+    for idx, row in df_pendientes.iterrows():
+        with st.container():
+            cols = st.columns([10, 1, 1, 0.5])  # datos | Sí | No | ✓
 
-        with cols[1]:
-            if st.button("Sí", key=f"btn_si_{row['id']}"):
-                actualizar_procesado(row["id"], 1)
+            with cols[0]:
+                st.markdown(
+                    "<div class='registro-scroll'>" +
+                    "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+            key_flag = f"flag_{row['id']}"
+            if key_flag not in st.session_state:
+                st.session_state[key_flag] = False
+
+            with cols[1]:
+                if st.button("Sí", key=f"btn_si_{row['id']}"):
+                    actualizar_procesado(row["id"], 1)
+                    st.session_state[key_flag] = True
+                    if "hora_inicio" not in st.session_state:
+                        st.session_state["hora_inicio"] = datetime.now()
+                    st.rerun()
+
+            with cols[2]:
+                if st.button("No", key=f"btn_no_{row['id']}"):
+                    actualizar_procesado(row["id"], 0)
+                    st.session_state[key_flag] = False
+                    st.rerun()
+
+            with cols[3]:
+                if st.session_state[key_flag]:
+                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("Registros ya marcados como 'Sí'")
+    for idx, row in df_procesados.iterrows():
+        with st.container():
+            cols = st.columns([10, 1, 1, 0.5])
+
+            with cols[0]:
+                st.markdown(
+                    "<div class='registro-scroll'>" +
+                    "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+            key_flag = f"flag_{row['id']}"
+            if key_flag not in st.session_state:
                 st.session_state[key_flag] = True
 
-                if "hora_inicio" not in st.session_state:
-                    st.session_state["hora_inicio"] = datetime.now()
+            with cols[1]:
+                st.button("Sí", key=f"btn_si_{row['id']}")  # no cambia estado
 
-                st.rerun()
+            with cols[2]:
+                if st.button("No", key=f"btn_no_{row['id']}"):
+                    actualizar_procesado(row["id"], 0)
+                    st.session_state[key_flag] = False
+                    st.rerun()
 
-        with cols[2]:
-            if st.button("No", key=f"btn_no_{row['id']}"):
-                actualizar_procesado(row["id"], 0)
-                st.session_state[key_flag] = False
-                st.rerun()
-
-        with cols[3]:
-            if st.session_state[key_flag]:
+            with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
 # ---------- SUBTOTAL Y PORCENTAJE LOCAL ----------
 st.markdown("---")
-procesados_en_df = df[df["procesado"] == 1]
-subtotal_local = len(procesados_en_df)
+subtotal_local = len(df_procesados)
 total_local = len(df)
 
 st.markdown("### 📊 Estado de los registros visibles")
