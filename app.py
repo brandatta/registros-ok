@@ -31,7 +31,7 @@ def actualizar_procesado(id_valor, estado):
 @st.cache_data(ttl=60)
 def load_data():
     conn = get_connection()
-    df = pd.read_sql("SELECT * FROM inventario", conn)
+    df = pd.read_sql("SELECT * FROM inventario LIMIT 10", conn)
     conn.close()
     return df
 
