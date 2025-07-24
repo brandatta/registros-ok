@@ -36,6 +36,8 @@ if "ultimo_tick" not in st.session_state:
     st.session_state["ultimo_tick"] = None
 if "refrescar" not in st.session_state:
     st.session_state["refrescar"] = False
+if "refresh_estimacion" not in st.session_state:
+    st.session_state["refresh_estimacion"] = False
 
 # ---------- FUNCIÓN DE CARGA ----------
 def load_data():
@@ -46,7 +48,6 @@ def load_data():
 
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
-    # ---------- BOTÓN MANUAL DE REFRESCO ----------
     if st.button("🔄 Actualizar registros"):
         st.session_state["refrescar"] = True
 
@@ -60,7 +61,6 @@ def main():
     df_pendientes = df[df["procesado"] == 0]
     df_procesados = df[df["procesado"] == 1]
 
-    # ---------- ESTILO ----------
     st.markdown("""
     <style>
     .registro-scroll {
@@ -79,18 +79,15 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # ---------- MENSAJE TEMPORAL ----------
     if st.session_state["mensaje_exito"]:
         st.success(st.session_state["mensaje_exito"])
         st.session_state["mensaje_exito"] = None
 
-    # ---------- TABS ----------
     tab1, tab2 = st.tabs([
         f"🔄 Pendientes ({len(df_pendientes)})",
         f"✅ Procesados ({len(df_procesados)})"
     ])
 
-    # ---------- TAB 1 ----------
     with tab1:
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
@@ -115,7 +112,6 @@ def main():
                     if st.session_state.get("ultimo_tick") == row["id"]:
                         st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-    # ---------- TAB 2 ----------
     with tab2:
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
@@ -134,7 +130,6 @@ def main():
                         st.session_state["refrescar"] = True
                         st.stop()
 
-    # ---------- MÉTRICAS ----------
     st.markdown("---")
     subtotal_local = len(df_procesados)
     total_local = subtotal_local + len(df_pendientes)
@@ -149,8 +144,11 @@ def main():
 
     st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
 
-    # ---------- ESTIMACIÓN TEMPORAL ----------
+    # ---------- BOTÓN DE REFRESCO DE ESTIMACIÓN ----------
     st.markdown("---")
+    if st.button("🔁 Actualizar estimación temporal"):
+        st.session_state["refresh_estimacion"] = True
+
     st.markdown("### ⏱️ Estimación temporal")
     if st.session_state["hora_inicio"]:
         ahora = datetime.now()
