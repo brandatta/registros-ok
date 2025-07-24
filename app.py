@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
+from datetime import datetime
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
@@ -15,6 +16,16 @@ def get_connection():
         database=st.secrets["app_marco_new"]["database"],
         port=3306,
     )
+
+# ---------- ACTUALIZAR REGISTRO ----------
+def marcar_como_procesado(id_valor):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "UPDATE inventario SET procesado = 1, proc_ts = NOW() WHERE id = %s"
+    cursor.execute(query, (id_valor,))
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # ---------- CARGA DE DATOS ----------
 @st.cache_data(ttl=60)
@@ -46,12 +57,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- MOSTRAR CADA REGISTRO EN UNA LÍNEA SCROLLEABLE ----------
+# ---------- MOSTRAR CADA REGISTRO ----------
 for idx, row in df.iterrows():
     with st.container():
-        cols = st.columns([10, 2])  # datos | botón + tilde
+        cols = st.columns([10, 2])  # datos | acción
 
-        # Sección de datos con scroll
         with cols[0]:
             st.markdown(
                 "<div class='registro-scroll'>" +
@@ -60,19 +70,19 @@ for idx, row in df.iterrows():
                 unsafe_allow_html=True
             )
 
-        # Acción: botón y tilde al lado
         with cols[1]:
-            key_flag = f"flag_{idx}"
-            key_btn = f"btn_{idx}"
-
-            if key_flag not in st.session_state:
-                st.session_state[key_flag] = False
+            key_flag = f"flag_{row['id']}"  # usamos el ID real como clave
 
             col_btn, col_tick = st.columns([1, 0.3])
 
             with col_btn:
-                if st.button("Sí", key=key_btn):
+                if key_flag not in st.session_state:
+                    st.session_state[key_flag] = row['procesado'] == 1
+
+                if st.button("Sí", key=f"btn_{row['id']}"):
+                    marcar_como_procesado(row["id"])
                     st.session_state[key_flag] = True
+                    st.rerun()
 
             with col_tick:
                 if st.session_state[key_flag]:
