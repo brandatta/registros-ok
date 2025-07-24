@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from datetime import datetime
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
@@ -17,16 +16,6 @@ def get_connection():
         port=3306,
     )
 
-# ---------- ACTUALIZAR REGISTRO ----------
-def marcar_como_procesado(id_valor):
-    conn = get_connection()
-    cursor = conn.cursor()
-    query = "UPDATE inventario SET procesado = 1, proc_ts = NOW() WHERE id = %s"
-    cursor.execute(query, (id_valor,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
 # ---------- CARGA DE DATOS ----------
 @st.cache_data(ttl=60)
 def load_data():
@@ -36,54 +25,28 @@ def load_data():
     return df
 
 df = load_data()
+
 st.subheader("Primeros 10 registros")
 
-# ---------- ESTILO SCROLL HORIZONTAL ----------
-st.markdown("""
-<style>
-.registro-scroll {
-    display: flex;
-    overflow-x: auto;
-    padding: 8px 0;
-    border-bottom: 1px solid #ddd;
-    font-family: monospace;
-    font-size: 14px;
-}
-.registro-scroll div {
-    flex: 0 0 auto;
-    padding-right: 16px;
-    white-space: nowrap;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ---------- MOSTRAR CADA REGISTRO ----------
+# ---------- MOSTRAR REGISTROS UNO A UNO EN FORMATO HORIZONTAL ----------
 for idx, row in df.iterrows():
-    with st.container():
-        cols = st.columns([10, 2])  # datos | acción
+    # Separar contenido (fila) y acción (botón o tick)
+    cols = st.columns([5, 1])  # [datos, acción]
 
-        with cols[0]:
-            st.markdown(
-                "<div class='registro-scroll'>" +
-                "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                "</div>",
-                unsafe_allow_html=True
-            )
+    with cols[0]:
+        st.markdown(
+            "<div style='padding: 10px; border: 1px solid #ccc; border-radius: 10px;'>"
+            + "<br>".join([f"<b>{col}:</b> {row[col]}" for col in df.columns])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
-        with cols[1]:
-            key_flag = f"flag_{row['id']}"  # usamos el ID real como clave
+    with cols[1]:
+        key_flag = f"flag_{idx}"
+        key_btn = f"btn_{idx}"
 
-            col_btn, col_tick = st.columns([1, 0.3])
-
-            with col_btn:
-                if key_flag not in st.session_state:
-                    st.session_state[key_flag] = row['procesado'] == 1
-
-                if st.button("Sí", key=f"btn_{row['id']}"):
-                    marcar_como_procesado(row["id"])
-                    st.session_state[key_flag] = True
-                    st.rerun()
-
-            with col_tick:
-                if st.session_state[key_flag]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+        if st.session_state.get(key_flag, False):
+            st.markdown("<span style='font-size:2rem; color:green;'>✔️</span>", unsafe_allow_html=True)
+        else:
+            if st.button("Sí", key=key_btn):
+                st.session_state[key_flag] = True
