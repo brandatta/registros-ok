@@ -42,11 +42,16 @@ if "ocultos" not in st.session_state:
     st.session_state["ocultos"] = set()
 
 df = load_data()
-total_registros = len(df)
+df_actualizado = load_data()  # se usará para calcular métricas reales tras cambios
 
 # ---------- SEPARAR REGISTROS ----------
 df_pendientes = df[(df["procesado"] == 0) & (~df["id"].isin(st.session_state["ocultos"]))]
 df_procesados = df[df["procesado"] == 1]
+
+df_total_actual = df_actualizado
+total_registros = len(df_total_actual)
+subtotal_local = len(df_procesados)
+total_local = subtotal_local + len(df_pendientes)
 
 # ---------- ESTILO ----------
 st.markdown("""
@@ -125,8 +130,6 @@ with tab2:
 
 # ---------- MÉTRICAS ----------
 st.markdown("---")
-subtotal_local = len(df_procesados)
-total_local = subtotal_local + len(df_pendientes)
 porcentaje_local = round((subtotal_local / total_local) * 100, 1) if total_local > 0 else 0.0
 
 st.markdown("### 📊 Estado de los registros visibles")
