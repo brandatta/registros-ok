@@ -38,20 +38,12 @@ def load_data():
 if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
 
-if "ocultos" not in st.session_state:
-    st.session_state["ocultos"] = set()
-
 df = load_data()
-df_actualizado = load_data()  # se usará para calcular métricas reales tras cambios
+total_registros = len(df)
 
 # ---------- SEPARAR REGISTROS ----------
-df_pendientes = df[(df["procesado"] == 0) & (~df["id"].isin(st.session_state["ocultos"]))]
+df_pendientes = df[df["procesado"] == 0]
 df_procesados = df[df["procesado"] == 1]
-
-df_total_actual = df_actualizado
-total_registros = len(df_total_actual)
-subtotal_local = len(df_procesados)
-total_local = subtotal_local + len(df_pendientes)
 
 # ---------- ESTILO ----------
 st.markdown("""
@@ -94,14 +86,12 @@ with tab1:
             with cols[1]:
                 if st.button("Sí", key=f"btn_si_{row['id']}"):
                     actualizar_procesado(row["id"], 1)
-                    st.session_state["ocultos"].add(row["id"])
                     if not st.session_state["hora_inicio"]:
                         st.session_state["hora_inicio"] = datetime.now()
                     st.rerun()
             with cols[2]:
                 if st.button("No", key=f"btn_no_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
-                    st.session_state["ocultos"].discard(row["id"])
                     st.rerun()
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -123,13 +113,14 @@ with tab2:
             with cols[2]:
                 if st.button("No", key=f"btn_no_proc_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
-                    st.session_state["ocultos"].discard(row["id"])
                     st.rerun()
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
 # ---------- MÉTRICAS ----------
 st.markdown("---")
+subtotal_local = len(df_procesados)
+total_local = subtotal_local + len(df_pendientes)
 porcentaje_local = round((subtotal_local / total_local) * 100, 1) if total_local > 0 else 0.0
 
 st.markdown("### 📊 Estado de los registros visibles")
