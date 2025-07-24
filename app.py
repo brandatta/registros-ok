@@ -136,6 +136,6 @@ else:
     st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
 
 # ---------- BOTÓN DE REFRESCO MANUAL ----------
-st.markdown("#### 🔄 ¿Los tiempos no están actualizados?")
+st.markdown("#### 🔄")
 if st.button("Actualizar estimaciones"):
     st.rerun()
