@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
+from datetime import datetime, timedelta
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
@@ -77,6 +78,11 @@ for idx, row in df.iterrows():
             if st.button("Sí", key=f"btn_si_{row['id']}"):
                 actualizar_procesado(row["id"], 1)
                 st.session_state[key_flag] = True
+
+                # Guardar hora de inicio si es el primer "Sí"
+                if "hora_inicio" not in st.session_state:
+                    st.session_state["hora_inicio"] = datetime.now()
+
                 st.rerun()
 
         with cols[2]:
@@ -89,13 +95,12 @@ for idx, row in df.iterrows():
             if st.session_state[key_flag]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-# ---------- SUBTOTAL Y PORCENTAJE SOLO DE LOS 10 REGISTROS ----------
+# ---------- SUBTOTAL Y PORCENTAJE LOCAL ----------
 st.markdown("---")
 procesados_en_df = df[df["procesado"] == 1]
 subtotal_local = len(procesados_en_df)
 total_local = len(df)
 
-# Mostrar resumen visual
 st.markdown("### 📊 Estado de los registros visibles")
 col1, col2 = st.columns([1, 3])
 
@@ -108,3 +113,25 @@ with col2:
     st.progress(int(porcentaje_local))
 
 st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
+
+# ---------- INFORMACIÓN DE TIEMPOS ----------
+st.markdown("---")
+st.markdown("### ⏱️ Estimación temporal")
+
+if "hora_inicio" in st.session_state:
+    hora_inicio = st.session_state["hora_inicio"]
+    ahora = datetime.now()
+    tiempo_transcurrido = ahora - hora_inicio
+    minutos = tiempo_transcurrido.total_seconds() / 60
+
+    if subtotal_local > 0:
+        estimado_total_min = (minutos / subtotal_local) * total_local
+        hora_fin_estimada = hora_inicio + timedelta(minutes=estimado_total_min)
+
+        st.info(f"🕒 Hora de inicio: **{hora_inicio.strftime('%H:%M:%S')}**")
+        st.info(f"⏳ Tiempo transcurrido: **{str(tiempo_transcurrido).split('.')[0]}**")
+        st.info(f"📅 Estimación de finalización: **{hora_fin_estimada.strftime('%H:%M:%S')}**")
+    else:
+        st.warning("Aún no se marcó ningún registro como 'Sí', no se puede calcular estimación.")
+else:
+    st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
