@@ -32,6 +32,15 @@ if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
 if "mensaje_exito" not in st.session_state:
     st.session_state["mensaje_exito"] = None
+if "ultimo_tick" not in st.session_state:
+    st.session_state["ultimo_tick"] = None
+
+# ---------- FUNCIÓN DE CARGA ----------
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
+    conn.close()
+    return df
 
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
@@ -89,9 +98,11 @@ def main():
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
+                        st.session_state["ultimo_tick"] = row["id"]
                         st.session_state["last_action"] = True
                 with cols[2]:
-                    st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
+                    if st.session_state.get("ultimo_tick") == row["id"]:
+                        st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
     # ---------- TAB 2 ----------
     with tab2:
@@ -144,17 +155,11 @@ def main():
     else:
         st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
 
-# ---------- FUNCIÓN DE CARGA ----------
-def load_data():
-    conn = get_connection()
-    df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
-    conn.close()
-    return df
-
 # ---------- EJECUTAR ----------
 main()
 
 # ---------- AUTOREFRESH POST ACCIÓN ----------
 if "last_action" in st.session_state:
     del st.session_state["last_action"]
+    del st.session_state["ultimo_tick"]
     st.stop()
