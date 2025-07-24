@@ -34,8 +34,8 @@ if "df_data" not in st.session_state:
     st.session_state["df_data"] = None
 
 # ---------- BOTÓN MANUAL DE ACTUALIZACIÓN ----------
-st.markdown("### 🔁 Recargar registros desde base de datos")
-actualizar = st.button("🔄 Actualizar registros")
+st.markdown("### 🔁 Recargar registros desde la base de datos")
+actualizar_btn = st.button("🔄 Actualizar registros")
 
 # ---------- CARGA DE DATOS ----------
 def load_data():
@@ -44,7 +44,7 @@ def load_data():
     conn.close()
     return df
 
-if actualizar or st.session_state["df_data"] is None:
+if actualizar_btn or st.session_state["df_data"] is None:
     st.session_state["df_data"] = load_data()
 
 df = st.session_state["df_data"]
