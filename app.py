@@ -1,3 +1,5 @@
+st.warning("✅ Última actualización: 24/07 a las 16:30")
+
 import streamlit as st
 import pandas as pd
 import mysql.connector
