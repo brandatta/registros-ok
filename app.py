@@ -103,3 +103,33 @@ for idx, row in df.iterrows():
 st.markdown("---")
 subtotal = contar_procesados()
 st.success(f"🔢 Subtotal de registros marcados como 'Sí': **{subtotal}**")
+
+# ---------- SUBTOTAL Y PORCENTAJE ----------
+st.markdown("---")
+
+# Obtener cantidad procesados y total
+subtotal = contar_procesados()
+
+def contar_total():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM inventario")
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total
+
+total_registros = contar_total()
+
+# Calcular porcentaje
+porcentaje = round((subtotal / total_registros) * 100, 1) if total_registros > 0 else 0.0
+
+# Mostrar métrica y barra
+st.markdown("### 📊 Estado general del inventario")
+col1, col2 = st.columns([1, 3])
+
+with col1:
+    st.metric(label="✅ Porcentaje marcado como 'Sí'", value=f"{porcentaje} %")
+
+with col2:
+    st.progress(int(porcentaje))
