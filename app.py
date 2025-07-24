@@ -33,13 +33,6 @@ if "hora_inicio" not in st.session_state:
 if "mensaje_exito" not in st.session_state:
     st.session_state["mensaje_exito"] = None
 
-# ---------- FUNCIÓN DE CARGA ----------
-def load_data():
-    conn = get_connection()
-    df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
-    conn.close()
-    return df
-
 # ---------- FUNCIÓN PRINCIPAL ----------
 def main():
     df = load_data()
@@ -96,12 +89,12 @@ def main():
                         if not st.session_state["hora_inicio"]:
                             st.session_state["hora_inicio"] = datetime.now()
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
-                        st.stop()
+                        st.session_state["last_action"] = True
                 with cols[2]:
                     if st.button("No", key=f"btn_no_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"❌ Registro {row['id']} marcado como 'No'."
-                        st.stop()
+                        st.session_state["last_action"] = True
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
@@ -123,7 +116,7 @@ def main():
                     if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.stop()
+                        st.session_state["last_action"] = True
                 with cols[3]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
@@ -160,5 +153,17 @@ def main():
     else:
         st.info("La hora de inicio se registrará al marcar el primer registro como 'Sí'.")
 
+# ---------- FUNCIÓN DE CARGA ----------
+def load_data():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM inventario ORDER BY id LIMIT 10", conn)
+    conn.close()
+    return df
+
 # ---------- EJECUTAR ----------
 main()
+
+# ---------- AUTOREFRESH POST ACCIÓN ----------
+if "last_action" in st.session_state:
+    del st.session_state["last_action"]
+    st.stop()  # para forzar recarga sin usar experimental_rerun
