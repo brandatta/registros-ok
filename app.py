@@ -31,7 +31,7 @@ def actualizar_procesado(id_valor, estado):
 @st.cache_data(ttl=60)
 def load_data():
     conn = get_connection()
-    df = pd.read_sql("SELECT * FROM inventario LIMIT 10", conn)
+    df = pd.read_sql("SELECT * FROM inventario LIMIT 100", conn)
     conn.close()
     return df
 
@@ -67,16 +67,14 @@ tab1, tab2 = st.tabs([
 
 with tab1:
     st.subheader("Registros no marcados como 'Sí'")
-    for idx, row in df_pendientes.iterrows():
+    for _, row in df_pendientes.iterrows():
         with st.container():
-            cols = st.columns([10, 1, 1, 0.5])  # datos | Sí | No | ✓
-
+            cols = st.columns([10, 1, 1, 0.5])
             with cols[0]:
                 st.markdown(
                     "<div class='registro-scroll'>" +
                     "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                    "</div>",
-                    unsafe_allow_html=True
+                    "</div>", unsafe_allow_html=True
                 )
 
             key_flag = f"flag_{row['id']}"
@@ -103,16 +101,14 @@ with tab1:
 
 with tab2:
     st.subheader("Registros ya marcados como 'Sí'")
-    for idx, row in df_procesados.iterrows():
+    for _, row in df_procesados.iterrows():
         with st.container():
             cols = st.columns([10, 1, 1, 0.5])
-
             with cols[0]:
                 st.markdown(
                     "<div class='registro-scroll'>" +
                     "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                    "</div>",
-                    unsafe_allow_html=True
+                    "</div>", unsafe_allow_html=True
                 )
 
             key_flag = f"flag_{row['id']}"
@@ -131,10 +127,10 @@ with tab2:
             with cols[3]:
                 st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-# ---------- SUBTOTAL Y PORCENTAJE LOCAL ----------
+# ---------- SUBTOTAL Y PORCENTAJE ----------
 st.markdown("---")
 subtotal_local = len(df_procesados)
-total_local = len(df)
+total_local = len(df_procesados) + len(df_pendientes)
 
 st.markdown("### 📊 Estado de los registros visibles")
 col1, col2 = st.columns([1, 3])
