@@ -40,6 +40,8 @@ if "mensaje_exito" not in st.session_state:
     st.session_state.mensaje_exito = None
 if "cambios" not in st.session_state:
     st.session_state.cambios = False
+if "refrescar_manual" not in st.session_state:
+    st.session_state.refrescar_manual = False
 
 # ---------- CARGA DE DATOS ----------
 @st.cache_data(ttl=1)
@@ -49,10 +51,14 @@ def load_data():
     conn.close()
     return df
 
-# Refrescar si hubo cambios
-if st.session_state.cambios:
+# ---------- BOTÓN DE ACTUALIZACIÓN MANUAL ----------
+if st.button("🔄 Actualizar registros manualmente"):
+    st.session_state.refrescar_manual = True
+
+if st.session_state.cambios or st.session_state.refrescar_manual:
     st.cache_data.clear()
     st.session_state.cambios = False
+    st.session_state.refrescar_manual = False
 
 df = load_data()
 df_pendientes = df[df["procesado"] == 0].head(10)
@@ -91,7 +97,6 @@ if st.session_state.mensaje_exito:
 with tabs[0]:
     st.subheader("Registros no marcados como 'Sí'")
     for _, row in df_pendientes.iterrows():
-        container_key = f"pend_{row['id']}"
         with st.container():
             cols = st.columns([10, 1, 0.5])
             with cols[0]:
@@ -108,7 +113,6 @@ with tabs[0]:
                     if not st.session_state.hora_inicio:
                         st.session_state.hora_inicio = datetime.now(BA)
                     st.session_state.cambios = True
-                    st.experimental_rerun()  # <- Puedes quitar esta línea si solo quieres refresco manual
             with cols[2]:
                 if st.session_state.ultimo_tick == row["id"]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
@@ -130,7 +134,6 @@ with tabs[1]:
                     actualizar_procesado(row["id"], 0)
                     st.session_state.mensaje_exito = f"↩️ Registro {row['id']} revertido a pendiente."
                     st.session_state.cambios = True
-                    st.experimental_rerun()  # <- Puedes quitar esta línea si solo quieres refresco manual
 
 # ---------- MÉTRICAS ----------
 st.markdown("---")
