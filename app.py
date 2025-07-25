@@ -2,11 +2,14 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 from datetime import datetime, timedelta
-import pytz
+import pytz  # NUEVO
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
 st.title("✅ Revisión de inventario")
+
+# ---------- ZONA HORARIA ----------
+BA = pytz.timezone("America/Argentina/Buenos_Aires")  # NUEVO
 
 # ---------- CONEXIÓN A MySQL ----------
 def get_connection():
@@ -29,7 +32,6 @@ def actualizar_procesado(id_valor, estado):
     conn.close()
 
 # ---------- VARIABLES DE ESTADO ----------
-tz = pytz.timezone("America/Argentina/Buenos_Aires")
 if "hora_inicio" not in st.session_state:
     st.session_state["hora_inicio"] = None
 if "mensaje_exito" not in st.session_state:
@@ -37,13 +39,9 @@ if "mensaje_exito" not in st.session_state:
 if "ultimo_tick" not in st.session_state:
     st.session_state["ultimo_tick"] = None
 if "refrescar" not in st.session_state:
-    st.session_state["refrescar"] = True
+    st.session_state["refrescar"] = False
 if "refresh_estimacion" not in st.session_state:
     st.session_state["refresh_estimacion"] = False
-if "last_click_id" not in st.session_state:
-    st.session_state["last_click_id"] = None
-if "last_click_type" not in st.session_state:
-    st.session_state["last_click_type"] = None
 
 # ---------- FUNCIÓN DE CARGA ----------
 def load_data():
@@ -58,15 +56,14 @@ def main():
         st.session_state["refrescar"] = True
 
     if st.session_state["refrescar"]:
-        df = load_data()
-        st.session_state["df"] = df
         st.session_state["refrescar"] = False
+        df = load_data()
     else:
-        df = st.session_state.get("df", load_data())
+        df = load_data()
 
+    total_registros = len(df)
     df_pendientes = df[df["procesado"] == 0]
     df_procesados = df[df["procesado"] == 1]
-    total_registros = len(df)
 
     st.markdown("""
     <style>
@@ -99,47 +96,45 @@ def main():
     with tabs[0]:
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
-            if st.session_state["last_click_id"] == row["id"] and st.session_state["last_click_type"] == "si":
-                continue  # Oculta visualmente el registro procesado sin recargar
             with st.container():
                 cols = st.columns([10, 1, 0.5])
                 with cols[0]:
-                    st.markdown("<div class='registro-scroll'>" +
+                    st.markdown(
+                        "<div class='registro-scroll'>" +
                         "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True)
+                        "</div>", unsafe_allow_html=True
+                    )
                 with cols[1]:
                     if st.button("Sí", key=f"btn_si_{row['id']}"):
                         actualizar_procesado(row["id"], 1)
-                        st.session_state["ultimo_tick"] = row["id"]
-                        st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
-                        st.session_state["last_click_id"] = row["id"]
-                        st.session_state["last_click_type"] = "si"
-                        st.session_state["refrescar"] = True
                         if not st.session_state["hora_inicio"]:
-                            st.session_state["hora_inicio"] = datetime.now(tz)
+                            st.session_state["hora_inicio"] = datetime.now(BA)  # CAMBIO
+                        st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
+                        st.session_state["ultimo_tick"] = row["id"]
+                        st.session_state["refrescar"] = True
+                        st.stop()
                 with cols[2]:
-                    if st.session_state["ultimo_tick"] == row["id"]:
+                    if st.session_state.get("ultimo_tick") == row["id"]:
                         st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
     # ---------- TAB 2: Procesados ----------
     with tabs[1]:
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
-            if st.session_state["last_click_id"] == row["id"] and st.session_state["last_click_type"] == "no":
-                continue  # Oculta visualmente el registro revertido sin recargar
             with st.container():
                 cols = st.columns([10, 1])
                 with cols[0]:
-                    st.markdown("<div class='registro-scroll'>" +
+                    st.markdown(
+                        "<div class='registro-scroll'>" +
                         "".join([f"<div><b>{col}:</b> {row[col]}</div>" for col in df.columns]) +
-                        "</div>", unsafe_allow_html=True)
+                        "</div>", unsafe_allow_html=True
+                    )
                 with cols[1]:
-                    if st.button("No", key=f"btn_no_{row['id']}"):
+                    if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.session_state["last_click_id"] = row["id"]
-                        st.session_state["last_click_type"] = "no"
                         st.session_state["refrescar"] = True
+                        st.stop()
 
     # ---------- MÉTRICAS ----------
     st.markdown("---")
@@ -154,16 +149,16 @@ def main():
     with col2:
         st.progress(int(porcentaje_local))
 
-    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
+    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}**")
 
-    # ---------- ESTIMACIÓN TEMPORAL ----------
+    # ---------- BOTÓN DE REFRESCO DE ESTIMACIÓN ----------
     st.markdown("---")
     if st.button("🔁 Actualizar estimación temporal"):
         st.session_state["refresh_estimacion"] = True
 
     st.markdown("### ⏱️ Estimación temporal")
     if st.session_state["hora_inicio"]:
-        ahora = datetime.now(tz)
+        ahora = datetime.now(BA)  # CAMBIO
         tiempo_transcurrido = ahora - st.session_state["hora_inicio"]
         minutos = tiempo_transcurrido.total_seconds() / 60
         if subtotal_local > 0:
