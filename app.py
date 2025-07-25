@@ -33,15 +33,15 @@ def actualizar_procesado(id_valor, estado):
 
 # ---------- ESTADO ----------
 if "hora_inicio" not in st.session_state:
-    st.session_state.hora_inicio = None
+    st.session_state["hora_inicio"] = None
 if "ultimo_tick" not in st.session_state:
-    st.session_state.ultimo_tick = None
+    st.session_state["ultimo_tick"] = None
 if "mensaje_exito" not in st.session_state:
-    st.session_state.mensaje_exito = None
+    st.session_state["mensaje_exito"] = None
 if "cambios" not in st.session_state:
-    st.session_state.cambios = False
+    st.session_state["cambios"] = False
 if "refrescar_manual" not in st.session_state:
-    st.session_state.refrescar_manual = False
+    st.session_state["refrescar_manual"] = False
 
 # ---------- CARGA DE DATOS ----------
 @st.cache_data(ttl=1)
@@ -53,12 +53,12 @@ def load_data():
 
 # ---------- BOTÓN DE ACTUALIZACIÓN MANUAL ----------
 if st.button("🔄 Actualizar registros manualmente"):
-    st.session_state.refrescar_manual = True
+    st.session_state["refrescar_manual"] = True
 
-if st.session_state.cambios or st.session_state.refrescar_manual:
+if st.session_state["cambios"] or st.session_state["refrescar_manual"]:
     st.cache_data.clear()
-    st.session_state.cambios = False
-    st.session_state.refrescar_manual = False
+    st.session_state["cambios"] = False
+    st.session_state["refrescar_manual"] = False
 
 df = load_data()
 
@@ -98,9 +98,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-if st.session_state.mensaje_exito:
-    st.success(st.session_state.mensaje_exito)
-    st.session_state.mensaje_exito = None
+if st.session_state["mensaje_exito"]:
+    st.success(st.session_state["mensaje_exito"])
+    st.session_state["mensaje_exito"] = None
 
 # ---------- TAB 1: Pendientes ----------
 with tabs[0]:
@@ -117,13 +117,13 @@ with tabs[0]:
             with cols[1]:
                 if st.button("Sí", key=f"btn_si_{row['id']}"):
                     actualizar_procesado(row["id"], 1)
-                    st.session_state.ultimo_tick = row["id"]
-                    st.session_state.mensaje_exito = f"✅ Registro {row['id']} marcado como 'Sí'."
-                    if not st.session_state.hora_inicio:
-                        st.session_state.hora_inicio = datetime.now(BA)
-                    st.session_state.cambios = True
+                    st.session_state["ultimo_tick"] = row["id"]
+                    st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
+                    if not st.session_state["hora_inicio"]:
+                        st.session_state["hora_inicio"] = datetime.now(BA)
+                    st.session_state["cambios"] = True
             with cols[2]:
-                if st.session_state.ultimo_tick == row["id"]:
+                if st.session_state["ultimo_tick"] == row["id"]:
                     st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
 # ---------- TAB 2: Procesados ----------
@@ -141,8 +141,8 @@ with tabs[1]:
             with cols[1]:
                 if st.button("No", key=f"btn_no_{row['id']}"):
                     actualizar_procesado(row["id"], 0)
-                    st.session_state.mensaje_exito = f"↩️ Registro {row['id']} revertido a pendiente."
-                    st.session_state.cambios = True
+                    st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
+                    st.session_state["cambios"] = True
 
 # ---------- MÉTRICAS ----------
 st.markdown("---")
@@ -160,17 +160,17 @@ st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtota
 # ---------- ESTIMACIÓN TEMPORAL ----------
 st.markdown("---")
 if st.button("🔁 Actualizar estimación temporal"):
-    st.session_state.refresh_estimacion = True
+    st.session_state["refresh_estimacion"] = True
 
 st.markdown("### ⏱️ Estimación temporal")
-if st.session_state.hora_inicio:
+if st.session_state["hora_inicio"]:
     ahora = datetime.now(BA)
-    transcurrido = ahora - st.session_state.hora_inicio
+    transcurrido = ahora - st.session_state["hora_inicio"]
     minutos = transcurrido.total_seconds() / 60
     if subtotal > 0:
         estimado_total = (minutos / subtotal) * total_registros
-        fin_est = st.session_state.hora_inicio + timedelta(minutes=estimado_total)
-        st.info(f"🕒 Hora de inicio: **{st.session_state.hora_inicio.strftime('%H:%M:%S')}**")
+        fin_est = st.session_state["hora_inicio"] + timedelta(minutes=estimado_total)
+        st.info(f"🕒 Hora de inicio: **{st.session_state['hora_inicio'].strftime('%H:%M:%S')}**")
         st.info(f"⏳ Tiempo transcurrido: **{str(transcurrido).split('.')[0]}**")
         st.info(f"📅 Estimación de finalización: **{fin_est.strftime('%H:%M:%S')}**")
     else:
