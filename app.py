@@ -61,8 +61,17 @@ if st.session_state.cambios or st.session_state.refrescar_manual:
     st.session_state.refrescar_manual = False
 
 df = load_data()
-df_pendientes = df[df["procesado"] == 0].head(10)
-df_procesados = df[df["procesado"] == 1].head(10)
+
+# ---------- LÓGICA DE LÍMITE COMBINADO ----------
+df_procesados = df[df["procesado"] == 1]
+df_pendientes = df[df["procesado"] == 0]
+
+if len(df_procesados) >= 10:
+    df_procesados = df_procesados.head(10)
+    df_pendientes = df_pendientes.head(0)
+else:
+    df_pendientes = df_pendientes.head(10 - len(df_procesados))
+
 total_registros = len(df_pendientes) + len(df_procesados)
 
 # ---------- INTERFAZ ----------
