@@ -2,10 +2,14 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 from datetime import datetime, timedelta
+import pytz  # NUEVO
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
 st.title("✅ Revisión de inventario")
+
+# ---------- ZONA HORARIA ----------
+BA = pytz.timezone("America/Argentina/Buenos_Aires")  # NUEVO
 
 # ---------- CONEXIÓN A MySQL ----------
 def get_connection():
@@ -104,7 +108,7 @@ def main():
                     if st.button("Sí", key=f"btn_si_{row['id']}"):
                         actualizar_procesado(row["id"], 1)
                         if not st.session_state["hora_inicio"]:
-                            st.session_state["hora_inicio"] = datetime.now()
+                            st.session_state["hora_inicio"] = datetime.now(BA)  # CAMBIO
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["ultimo_tick"] = row["id"]
                         st.session_state["refrescar"] = True
@@ -145,7 +149,7 @@ def main():
     with col2:
         st.progress(int(porcentaje_local))
 
-    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
+    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}**")
 
     # ---------- BOTÓN DE REFRESCO DE ESTIMACIÓN ----------
     st.markdown("---")
@@ -154,7 +158,7 @@ def main():
 
     st.markdown("### ⏱️ Estimación temporal")
     if st.session_state["hora_inicio"]:
-        ahora = datetime.now()
+        ahora = datetime.now(BA)  # CAMBIO
         tiempo_transcurrido = ahora - st.session_state["hora_inicio"]
         minutos = tiempo_transcurrido.total_seconds() / 60
         if subtotal_local > 0:
