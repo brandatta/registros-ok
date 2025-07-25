@@ -2,12 +2,14 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 from datetime import datetime, timedelta
-import pytz
+import pytz  # NUEVO
 
 # ---------- CONFIGURACIÓN ----------
 st.set_page_config(page_title="Revisión de inventario", layout="wide")
 st.title("✅ Revisión de inventario")
-tz = pytz.timezone("America/Argentina/Buenos_Aires")
+
+# ---------- ZONA HORARIA ----------
+BA = pytz.timezone("America/Argentina/Buenos_Aires")  # NUEVO
 
 # ---------- CONEXIÓN A MySQL ----------
 def get_connection():
@@ -55,12 +57,14 @@ def main():
 
     if st.session_state["refrescar"]:
         st.session_state["refrescar"] = False
+        df = load_data()
+    else:
+        df = load_data()
 
-    df = load_data()
+    total_registros = len(df)
     df_pendientes = df[df["procesado"] == 0]
     df_procesados = df[df["procesado"] == 1]
 
-    total_registros = len(df)
     st.markdown("""
     <style>
     .registro-scroll {
@@ -83,12 +87,13 @@ def main():
         st.success(st.session_state["mensaje_exito"])
         st.session_state["mensaje_exito"] = None
 
-    tab1, tab2 = st.tabs([
+    tabs = st.tabs([
         f"🔄 Pendientes ({len(df_pendientes)})",
         f"✅ Procesados ({len(df_procesados)})"
     ])
 
-    with tab1:
+    # ---------- TAB 1: Pendientes ----------
+    with tabs[0]:
         st.subheader("Registros no marcados como 'Sí'")
         for _, row in df_pendientes.iterrows():
             with st.container():
@@ -103,15 +108,17 @@ def main():
                     if st.button("Sí", key=f"btn_si_{row['id']}"):
                         actualizar_procesado(row["id"], 1)
                         if not st.session_state["hora_inicio"]:
-                            st.session_state["hora_inicio"] = datetime.now(tz)
+                            st.session_state["hora_inicio"] = datetime.now(BA)  # CAMBIO
                         st.session_state["mensaje_exito"] = f"✅ Registro {row['id']} marcado como 'Sí'."
                         st.session_state["ultimo_tick"] = row["id"]
-                        st.experimental_rerun()
+                        st.session_state["refrescar"] = True
+                        st.stop()
                 with cols[2]:
                     if st.session_state.get("ultimo_tick") == row["id"]:
                         st.markdown("<span style='font-size:1.5rem; color:green;'>✓</span>", unsafe_allow_html=True)
 
-    with tab2:
+    # ---------- TAB 2: Procesados ----------
+    with tabs[1]:
         st.subheader("Registros ya marcados como 'Sí'")
         for _, row in df_procesados.iterrows():
             with st.container():
@@ -123,10 +130,11 @@ def main():
                         "</div>", unsafe_allow_html=True
                     )
                 with cols[1]:
-                    if st.button("No", key=f"btn_no_{row['id']}"):
+                    if st.button("No", key=f"btn_no_proc_{row['id']}"):
                         actualizar_procesado(row["id"], 0)
                         st.session_state["mensaje_exito"] = f"↩️ Registro {row['id']} revertido a pendiente."
-                        st.experimental_rerun()
+                        st.session_state["refrescar"] = True
+                        st.stop()
 
     # ---------- MÉTRICAS ----------
     st.markdown("---")
@@ -141,7 +149,7 @@ def main():
     with col2:
         st.progress(int(porcentaje_local))
 
-    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}")
+    st.success(f"🔢 Subtotal de registros visibles marcados como 'Sí': **{subtotal_local}** de {total_local}**")
 
     # ---------- BOTÓN DE REFRESCO DE ESTIMACIÓN ----------
     st.markdown("---")
@@ -150,7 +158,7 @@ def main():
 
     st.markdown("### ⏱️ Estimación temporal")
     if st.session_state["hora_inicio"]:
-        ahora = datetime.now(tz)
+        ahora = datetime.now(BA)  # CAMBIO
         tiempo_transcurrido = ahora - st.session_state["hora_inicio"]
         minutos = tiempo_transcurrido.total_seconds() / 60
         if subtotal_local > 0:
